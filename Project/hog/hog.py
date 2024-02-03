@@ -24,6 +24,33 @@ def roll_dice(num_rolls, dice=six_sided):
     # BEGIN PROBLEM 1
     "*** YOUR CODE HERE ***"
     # END PROBLEM 1
+    sum = 0
+    temp = 0
+    # 这个处理加上去的原因是下面这种情况
+    # 在第二次调用的时候，应该是make_test_dice中的数字继续执行，而不是从头开始
+    """
+    counted_dice = make_test_dice(4, 1, 2, 6)
+    roll_dice(3, counted_dice)
+    >>> 1
+    roll_dice(1, counted_dice)
+    >>> 6
+    """
+    isOne = False
+    for i in range(num_rolls):
+        # 每调用一次dice，相当于掷骰子一次，一开始没用temp来接
+        # 所以开始的做法：一次循环已经掷骰子两次了
+        temp = dice()
+        if temp == 1:
+            sum = 1
+            # 一开始的写法是，只要是1的时候，直接return
+            # 但这样有一个问题，如果有三次机会掷骰子，第二次是1，那么第三次就不掷骰子了
+            # 就是上面例子的那种情况
+            isOne = True
+        sum = sum + temp
+    if isOne:
+        return 1
+    return sum
+
 
 
 def tail_points(opponent_score):
@@ -34,7 +61,25 @@ def tail_points(opponent_score):
     """
     # BEGIN PROBLEM 2
     "*** YOUR CODE HERE ***"
+    score = 0
+    singleDig = 0
+    tenGid = 0
+    if opponent_score == 0:
+        score = 1
+    else:
+        singleDig = opponent_score % 10
+        # 注意这里不是/，而是//（整除）
+        opponent_score = opponent_score // 10 
+        tenGid = opponent_score % 10
+        score = 2 * cal_abs(singleDig - tenGid) + 1
+    return score
     # END PROBLEM 2
+
+def cal_abs(num):
+    if num > 0:
+        return num
+    else:
+        return num * -1
 
 
 def take_turn(num_rolls, opponent_score, dice=six_sided):
@@ -51,7 +96,35 @@ def take_turn(num_rolls, opponent_score, dice=six_sided):
     assert num_rolls <= 10, 'Cannot roll more than 10 dice.'
     # BEGIN PROBLEM 3
     "*** YOUR CODE HERE ***"
+    score = 0
+    if num_rolls == 0:
+        score = tail_points(opponent_score)
+    else:
+        score = roll_dice(num_rolls, dice)
+    return score
     # END PROBLEM 3
+
+def perfect_square(score):
+    isPerfect = False
+    i = 1
+    if score == 1:
+        return True
+    while i <= (score//2):
+        if i * i == score:
+            isPerfect = True
+            break
+        else:
+            i = i + 1
+    return isPerfect
+
+def next_perfect_square(perfectNum):
+    i = 1
+    while i <= (perfectNum//2):
+        if i * i == perfectNum:
+            break
+        else:
+            i = i + 1  
+    return (i+1)*(i+1)
 
 
 def simple_update(num_rolls, player_score, opponent_score, dice=six_sided):
@@ -75,7 +148,6 @@ def square_update(num_rolls, player_score, opponent_score, dice=six_sided):
 # BEGIN PROBLEM 4
 "*** YOUR CODE HERE ***"
 # END PROBLEM 4
-
 
 def always_roll_5(score, opponent_score):
     """A strategy of always rolling 5 dice, regardless of the player's score or
@@ -113,6 +185,16 @@ def play(strategy0, strategy1, update,
     who = 0  # Who is about to take a turn, 0 (first) or 1 (second)
     # BEGIN PROBLEM 5
     "*** YOUR CODE HERE ***"
+    num_rolls = 0
+    while ((score0 < goal) and (score1 < goal)) :
+        if who == 0:
+            num_rolls = strategy0(score0, score1)
+            score0 = update(num_rolls, score0, score1, dice)
+        else:
+             num_rolls = strategy1(score1, score0)
+             score1 = update(num_rolls, score1, score0, dice)
+        who = 1 - who
+
     # END PROBLEM 5
     return score0, score1
 
@@ -138,6 +220,9 @@ def always_roll(n):
     assert n >= 0 and n <= 10
     # BEGIN PROBLEM 6
     "*** YOUR CODE HERE ***"
+    def strategy(player_score, opponent_score):
+        return n
+    return strategy
     # END PROBLEM 6
 
 
@@ -168,6 +253,12 @@ def is_always_roll(strategy, goal=GOAL):
     """
     # BEGIN PROBLEM 7
     "*** YOUR CODE HERE ***"
+    first_roll = strategy(0, 0)
+    for player_score in range(goal):
+        for opponent_score in range(goal):
+            if strategy(player_score, opponent_score) != first_roll:
+                return False
+    return True
     # END PROBLEM 7
 
 
@@ -184,8 +275,14 @@ def make_averaged(original_function, total_samples=1000):
     """
     # BEGIN PROBLEM 8
     "*** YOUR CODE HERE ***"
+    def cal_result(*args):
+        sum = 0
+        for i in range(total_samples):
+            result = original_function(*args)
+            sum = sum + result
+        return sum/total_samples
+    return cal_result
     # END PROBLEM 8
-
 
 def max_scoring_num_rolls(dice=six_sided, total_samples=1000):
     """Return the number of dice (1 to 10) that gives the highest average turn score
@@ -198,8 +295,20 @@ def max_scoring_num_rolls(dice=six_sided, total_samples=1000):
     """
     # BEGIN PROBLEM 9
     "*** YOUR CODE HERE ***"
+    max_average = 0
+    temp_average = 0
+    max_i = 1
+    for i in range(1,11):
+        # 开始关于make_averaged返回函数然后又加参数的用法不是很理解
+        # 问了chatgpt之后了才明白
+        temp_average = make_averaged(roll_dice, total_samples)(i, dice)
+        if temp_average > max_average:
+            max_average = temp_average
+            max_i = i
+        elif temp_average == max_average:
+            max_i = min(max_i, i)
+    return max_i
     # END PROBLEM 9
-
 
 def winner(strategy0, strategy1):
     """Return 0 if strategy0 wins against strategy1, and 1 otherwise."""
@@ -241,14 +350,23 @@ def tail_strategy(score, opponent_score, threshold=12, num_rolls=6):
     points, and returns NUM_ROLLS otherwise. Ignore score and Square Swine.
     """
     # BEGIN PROBLEM 10
-    return num_rolls  # Remove this line once implemented.
+    scores = tail_points(opponent_score)
+    if scores >= threshold:
+        return 0
+    else:
+        return num_rolls  # Remove this line once implemented.
     # END PROBLEM 10
 
 
 def square_strategy(score, opponent_score, threshold=12, num_rolls=6):
     """This strategy returns 0 dice when your score would increase by at least threshold."""
     # BEGIN PROBLEM 11
-    return num_rolls  # Remove this line once implemented.
+    # 注意，因为要求的是投掷0次的时候的计算结果，所以调用函数的时候，参数要弄明白
+    scores = square_update(0, score, opponent_score)
+    if (scores-score) >= threshold:
+        return 0
+    else:   
+        return num_rolls  # Remove this line once implemented.
     # END PROBLEM 11
 
 
