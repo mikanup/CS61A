@@ -58,18 +58,26 @@ def double_eights(n):
     False
     """
     "*** YOUR CODE HERE ***"
+    # while n > 0:
+    #     digit = n % 10
+    #     if digit == 8:
+    #         n = n // 10
+    #         digit = n % 10
+    #         if digit == 8:
+    #             return True
+    #         else:
+    #             n = n // 10
+    #             continue
+    #     else:
+    #         n = n // 10
+    # return False
+    # 在做lab04的时候，找出之前做的，总觉得不精简，找chatgpt改了一下
+    pre_digit = 0
     while n > 0:
         digit = n % 10
-        if digit == 8:
-            n = n // 10
-            digit = n % 10
-            if digit == 8:
-                return True
-            else:
-                n = n // 10
-                continue
-        else:
-            n = n // 10
-    return False
-        
+        if digit == 8 and pre_digit == 8:
+            return True
+        pre_digit = digit
+        n = n // 10
+    return False   
         
